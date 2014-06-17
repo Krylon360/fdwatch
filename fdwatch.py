@@ -38,24 +38,46 @@ def init_log(fname, level=logging.INFO):
     logging.basicConfig(filename=fname, format='%(asctime)s - %(levelname)s \
 - %(message)s', \
                             level=level)
-    logger.debug('Initialized logging')
+    logger.info('fdwatch started.')
+
+def get_nthreads(pid):
+    """Get the number of threads of PID"""
+    with open('/proc/%d/stat' % pid) as f:
+        l = f.readline().split(')')
+        nt = l[1].split()[17]
+        return int(nt)
 
 def run_main(pid, freq):
-    """foo"""
+    """Main loop"""
     import time
     fdir = '/proc/%d/fd' % pid
     stime = 1. / freq
     maxfds = 0
+    alltimemaxfds = 0
     prevfds = 0
+    prevday = time.localtime().tm_mday
     while True:
         d = os.listdir(fdir)
         nfds = len(d)
-        if nfds > maxfds:
+        curday = time.localtime().tm_mday
+        if curday != prevday:
+            # Day changed, rollover
+            logger.info('Daily rollover, max fds for previous day was %d.', \
+                            maxfds)
             maxfds = nfds
-            logger.info('PID %d has new max fds: %d', pid, nfds)
+        if nfds > alltimemaxfds:
+            alltimemaxfds = nfds
+            maxfds = nfds
+            logger.info('PID %d has new all time max fds: %d. Threads: %d.', \
+                            pid, nfds, get_nthreads(pid))
+        elif nfds > maxfds:
+            maxfds = nfds
+            logger.info('PID %d has new daily max fds: %d. Threads: %d.', pid, \
+                            nfds, get_nthreads(pid))
         if nfds != prevfds:
             prevfds = nfds
-            logger.debug('PID %d has %d fd:s open', pid, nfds)
+            logger.debug('PID %d has %d fd:s open, %d threads.', pid, nfds, \
+                             get_nthreads(pid))
         time.sleep(stime)
 
 if __name__ == '__main__':
