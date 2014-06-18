@@ -65,6 +65,7 @@ def run_main(pid, freq):
             logger.info('Daily rollover, max fds for previous day was %d.', \
                             maxfds)
             maxfds = nfds
+            prevday = curday
         if nfds > alltimemaxfds:
             alltimemaxfds = nfds
             maxfds = nfds
