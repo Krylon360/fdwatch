@@ -47,7 +47,7 @@ def get_nthreads(pid):
         nt = l[1].split()[17]
         return int(nt)
 
-def run_main(pid, freq):
+def run_main(pid, freq, plotfile):
     """Main loop"""
     import time
     fdir = '/proc/%d/fd' % pid
@@ -56,6 +56,11 @@ def run_main(pid, freq):
     alltimemaxfds = 0
     prevfds = 0
     prevday = time.localtime().tm_mday
+    if plotfile:
+        pfile = open(plotfile, 'w')
+        pfile.write('#Date (Unix time)    #fds\n')
+    else:
+        pfile = None
     while True:
         d = os.listdir(fdir)
         nfds = len(d)
@@ -79,6 +84,8 @@ def run_main(pid, freq):
             prevfds = nfds
             logger.debug('PID %d has %d fd:s open, %d threads.', pid, nfds, \
                              get_nthreads(pid))
+            if pfile:
+                pfile.write('%f    %d\n' % (time.time(), nfds))
         time.sleep(stime)
 
 if __name__ == '__main__':
@@ -94,6 +101,8 @@ if __name__ == '__main__':
 /var/log/fdwatch-[PID]')
     parser.add_option('-l', '--loglevel', dest='loglevel', \
                           help='Log level')
+    parser.add_option('-p', '--plotfile', dest='plotfile', \
+                          help='Write output to file for plotting')
     (options, args) = parser.parse_args()
     if len(args) == 0:
         sys.stderr.write('FATAL: Required PID argument missing.\n')
@@ -117,7 +126,7 @@ if __name__ == '__main__':
         import daemon
         with daemon.DaemonContext():
             init_log(ofile, level=loglevel)
-            run_main(pid, freq)
+            run_main(pid, freq, options.plotfile)
     else:
         init_log(ofile, level=loglevel)
-        run_main(pid, freq)
+        run_main(pid, freq, options.plotfile)
