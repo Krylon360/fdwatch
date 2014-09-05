@@ -59,6 +59,7 @@ def run_main(pid, freq, plotfile):
     if plotfile:
         pfile = open(plotfile, 'w')
         pfile.write('#Date (Unix time)    #fds\n')
+        pfile.flush()
     else:
         pfile = None
     while True:
@@ -86,6 +87,7 @@ def run_main(pid, freq, plotfile):
                              get_nthreads(pid))
             if pfile:
                 pfile.write('%f    %d\n' % (time.time(), nfds))
+                pfile.flush()
         time.sleep(stime)
 
 if __name__ == '__main__':
